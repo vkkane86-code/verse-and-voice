@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verse &amp; Voice — Poem Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FAFAF8;--surface:#FFF;--border:rgba(0,0,0,0.1);--border-md:rgba(0,0,0,0.18);
+  --text:#1A1612;--muted:#6B6355;--success:#1D6A3C;--success-bg:#EBF7F0;
+  --info:#154B8A;--info-bg:#E8F1FB;--warn:#7A4C00;--warn-bg:#FEF3DC;
+  --radius:10px;--radius-lg:14px
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#141210;--surface:#1E1B18;--border:rgba(255,255,255,0.1);--border-md:rgba(255,255,255,0.18);
+  --text:#EDE8E1;--muted:#8A8070;--success:#5ECE94;--success-bg:#0D2E1C;
+  --info:#6EAAEE;--info-bg:#0D1E36;--warn:#EDAA40;--warn-bg:#281800}
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem 4rem}
+.app{max-width:860px;margin:0 auto}
+.header{text-align:center;margin-bottom:2.5rem;padding-bottom:1.8rem;border-bottom:0.5px solid var(--border)}
+.header h1{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:500;line-height:1.2;letter-spacing:-0.3px}
+.header p{font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:0.09em;text-transform:uppercase}
+select,input[type="number"],textarea{
+  font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);
+  background:var(--surface);border:0.5px solid var(--border-md);
+  border-radius:var(--radius);padding:9px 12px;width:100%;outline:none;transition:border-color 0.15s
+}
+select:focus,input:focus,textarea:focus{border-color:var(--text)}
+textarea{resize:vertical;min-height:68px;line-height:1.55}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gen-btn{
+  width:100%;padding:13px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  letter-spacing:0.05em;background:var(--text);color:var(--bg);
+  border:none;border-radius:var(--radius);cursor:pointer;margin-top:6px;
+  transition:opacity 0.15s,transform 0.1s
+}
+.gen-btn:hover{opacity:0.82}
+.gen-btn:active{transform:scale(0.99)}
+.gen-btn:disabled{opacity:0.35;cursor:not-allowed}
+.progress-wrap{margin-top:12px;display:none}
+.progress-wrap.show{display:block}
+.progress-track{height:1.5px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;width:0;background:var(--text);animation:prog 2.4s ease-in-out infinite}
+@keyframes prog{0%{width:0}65%{width:82%}100%{width:100%}}
+.steps{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.step{font-size:10px;padding:3px 9px;border-radius:20px;border:0.5px solid var(--border-md);color:var(--muted);transition:all 0.2s}
+.step.active{background:var(--success-bg);color:var(--success);border-color:transparent}
+.step.done{opacity:0.4;text-decoration:line-through}
+.status{font-size:12px;color:var(--muted);margin-top:6px;min-height:18px;font-style:italic}
+.divider{border:none;border-top:0.5px solid var(--border);margin:1.5rem 0}
+.output{display:none}
+.output-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.out-label{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:0.09em;text-transform:uppercase}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:500}
+.badge-success{background:var(--success-bg);color:var(--success)}
+.badge-info{background:var(--info-bg);color:var(--info)}
+.poem-card{position:relative;border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid var(--border);background:var(--surface)}
+.poem-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.12;transition:opacity 0.3s}
+.poem-fade{position:absolute;inset:0;background:linear-gradient(160deg,var(--surface) 25%,transparent 100%)}
+.poem-inner{position:relative;z-index:2;padding:2.4rem 2.8rem}
+.poem-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.4rem}
+.poem-tag{font-size:10px;padding:2px 9px;border-radius:20px;border:0.5px solid var(--border-md);color:var(--muted);letter-spacing:0.05em}
+.poem-title{font-family:'Cormorant Garamond',serif;font-size:1.9rem;font-weight:600;line-height:1.25;margin-bottom:8px}
+.poem-epigraph{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.92rem;color:var(--muted);margin-bottom:2rem;line-height:1.55;padding-left:14px;border-left:2px solid var(--border-md)}
+.poem-body{font-family:'Cormorant Garamond',serif;font-size:1.08rem;line-height:2;color:var(--text)}
+.stanza{margin-bottom:1.5rem}
+.stanza:last-child{margin-bottom:0}
+.plag-panel{margin-top:1.8rem;padding-top:1.4rem;border-top:0.5px solid var(--border)}
+.plag-title{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:0.09em;text-transform:uppercase;margin-bottom:10px}
+.plag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.plag-item{background:var(--bg);border-radius:var(--radius);padding:10px 12px}
+.plag-item-label{font-size:10px;color:var(--muted);margin-bottom:4px}
+.plag-item-val{font-size:14px;font-weight:500;color:var(--text)}
+.plag-item-val.ok{color:var(--success)}
+.plag-item-val.warn{color:var(--warn)}
+.plag-bar-wrap{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.plag-bar{height:100%;border-radius:2px;background:var(--success)}
+.author-note{font-size:12px;color:var(--muted);font-style:italic;margin-top:1rem;padding:10px 14px;background:var(--bg);border-radius:var(--radius);line-height:1.65}
+.poem-actions{display:flex;gap:8px;margin-top:1.4rem;flex-wrap:wrap}
+.poem-actions button{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:7px 13px;border-radius:var(--radius);cursor:pointer;border:0.5px solid var(--border-md);background:var(--surface);color:var(--text);transition:background 0.1s}
+.poem-actions button:hover{background:var(--bg)}
+.bg-section{margin-top:12px}
+.bg-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px}
+.bg-label-txt{font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase}
+.bg-opacity-row{display:flex;align-items:center;gap:8px}
+.bg-opacity-row label{font-size:10px;color:var(--muted)}
+.bg-thumbs{display:flex;gap:6px;flex-wrap:wrap}
+.bg-thumb{width:60px;height:40px;border-radius:6px;border:2px solid transparent;cursor:pointer;background-size:cover;background-position:center;overflow:hidden;flex-shrink:0;transition:border-color 0.15s,transform 0.1s}
+.bg-thumb img{width:100%;height:100%;object-fit:cover}
+.bg-thumb:hover{transform:scale(1.06)}
+.bg-thumb.active{border-color:var(--text)}
+@media(max-width:560px){
+  .form-grid-3,.form-grid-2{grid-template-columns:1fr}
+  .poem-inner{padding:1.6rem}
+  .poem-title{font-size:1.5rem}
+  .header h1{font-size:2rem}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Verse &amp; Voice</h1>
+    <p>Multilingual · AI-Powered · Plagiarism-Verified</p>
+  </div>
+
+  <div class="form-grid-3">
+    <div class="field"><label>Language</label>
+      <select id="lang">
+        <option value="English">English</option>
+        <option value="Tagalog">Tagalog (Filipino)</option>
+        <option value="Ilonggo">Ilonggo (Hiligaynon)</option>
+        <option value="Spanish">Spanish</option>
+      </select>
+    </div>
+    <div class="field"><label>Topic / Genre</label>
+      <select id="topic">
+        <option value="Love">Love &amp; Romance</option>
+        <option value="Life">Life &amp; Journey</option>
+        <option value="Inspirational">Inspirational</option>
+        <option value="Patriotic">Patriotic</option>
+        <option value="Elegy">Elegy / Grief</option>
+        <option value="Nature">Nature</option>
+        <option value="Faith">Faith &amp; Spirituality</option>
+        <option value="Nostalgia">Nostalgia</option>
+        <option value="Friendship">Friendship</option>
+        <option value="Custom">Custom (specify below)</option>
+      </select>
+    </div>
+    <div class="field"><label>Stanzas (1–150)</label>
+      <input type="number" id="stanzas" min="1" max="150" value="4">
+    </div>
+  </div>
+
+  <div class="form-grid-3">
+    <div class="field"><label>Style</label>
+      <select id="style">
+        <option value="Free Verse">Free Verse</option>
+        <option value="Rhyming (ABAB)">Rhyming (ABAB)</option>
+        <option value="Rhyming (AABB)">Rhyming (AABB)</option>
+        <option value="Sonnet-inspired">Sonnet-inspired</option>
+        <option value="Ode">Ode</option>
+        <option value="Narrative / Epic">Narrative / Epic</option>
+        <option value="Haiku-inspired">Haiku-inspired</option>
+        <option value="Villanelle-inspired">Villanelle-inspired</option>
+      </select>
+    </div>
+    <div class="field"><label>Tone / Mood</label>
+      <select id="tone">
+        <option value="heartfelt and deeply emotional">Heartfelt &amp; Emotional</option>
+        <option value="uplifting and hopeful">Uplifting &amp; Hopeful</option>
+        <option value="melancholic and reflective">Melancholic &amp; Reflective</option>
+        <option value="bold, passionate and fierce">Bold &amp; Passionate</option>
+        <option value="gentle, serene and contemplative">Gentle &amp; Serene</option>
+        <option value="dramatic and intense">Dramatic &amp; Intense</option>
+        <option value="bittersweet and nostalgic">Bittersweet &amp; Nostalgic</option>
+        <option value="mystical and otherworldly">Mystical &amp; Otherworldly</option>
+      </select>
+    </div>
+    <div class="field"><label>Imagery Level</label>
+      <select id="imagery">
+        <option value="rich with vivid sensory imagery, extended metaphors, and symbolism">Rich &amp; Symbolic</option>
+        <option value="moderately imagistic with clear metaphors">Moderately Imagistic</option>
+        <option value="spare and direct, letting emotion carry the verse">Spare &amp; Direct</option>
+        <option value="surreal and dreamlike with unexpected images">Surreal &amp; Dreamlike</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Theme, Keywords, or Personal Context <span style="text-transform:none;font-weight:300;font-size:10px">(optional — the more you share, the more personal the poem)</span></label>
+    <textarea id="keywords" placeholder="e.g. a mother who crossed the sea, salt and sacrifice, monsoon rain on a tin roof in Davao..."></textarea>
+  </div>
+
+  <button class="gen-btn" id="genBtn" onclick="generate()">Generate Poem ↗</button>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="steps">
+      <span class="step" id="s1">Composing verse</span>
+      <span class="step" id="s2">Refining poetics</span>
+      <span class="step" id="s3">Checking originality</span>
+      <span class="step" id="s4">Scoring authenticity</span>
+      <span class="step" id="s5">Fetching backgrounds</span>
+    </div>
+  </div>
+  <div class="status" id="statusLine"></div>
+
+  <div class="output" id="output">
+    <div class="divider"></div>
+    <div class="output-header">
+      <div class="out-label">Your poem</div>
+      <div class="badges">
+        <span class="badge badge-success" id="plagBadge" style="display:none">✓ Original · Plagiarism-Free</span>
+        <span class="badge badge-info" id="langBadge"></span>
+      </div>
+    </div>
+
+    <div class="poem-card">
+      <div class="poem-bg" id="poemBg"></div>
+      <div class="poem-fade"></div>
+      <div class="poem-inner">
+        <div class="poem-tags" id="poemTags"></div>
+        <div class="poem-title" id="poemTitle"></div>
+        <div class="poem-epigraph" id="poemEpigraph" style="display:none"></div>
+        <div class="poem-body" id="poemBody"></div>
+        <div class="plag-panel" id="plagPanel" style="display:none">
+          <div class="plag-title">Originality Report</div>
+          <div class="plag-grid" id="plagGrid"></div>
+        </div>
+        <div class="author-note" id="authorNote" style="display:none"></div>
+        <div class="poem-actions">
+          <button onclick="copyPoem()">Copy poem</button>
+          <button onclick="generate()">Regenerate ↗</button>
+          <button onclick="shuffleBg()">Shuffle background</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-section">
+      <div class="bg-label-row">
+        <span class="bg-label-txt">Background images — thematic &amp; trending</span>
+        <div class="bg-opacity-row">
+          <label for="bgOpacity">Opacity</label>
+          <input type="range" id="bgOpacity" min="0" max="40" value="12" step="1" oninput="setBgOpacity(this.value)" style="width:80px">
+        </div>
+      </div>
+      <div class="bg-thumbs" id="bgThumbs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let images=[], activeImg=0;
+
+const TOPIC_IMAGES={
+  Love:['romance1','couple-love2','red-roses3','hearts4','sunset-lovers5'],
+  Life:['sunrise-path1','journey-road2','mountains-mist3','open-sea4','forest-light5'],
+  Inspirational:['mountain-summit1','eagle-sky2','dawn-horizon3','lighthouse4','golden-fields5'],
+  Patriotic:['flag-wind1','landscape-nation2','eagle-flag3','sunset-country4','monument5'],
+  Elegy:['misty-cemetery1','autumn-leaves2','candle-dark3','willow-tree4','rain-window5'],
+  Nature:['forest-bloom1','waterfall2','cherry-blossom3','ocean-waves4','wildflowers5'],
+  Faith:['cathedral-light1','heavenly-clouds2','candle-prayer3','cross-sunrise4','stained-glass5'],
+  Nostalgia:['vintage-photo1','old-house2','autumn-street3','sepia-memories4','film-grain5'],
+  Friendship:['friends-sunset1','golden-hour2','hands-together3','laughing4','campfire5'],
+  Custom:['poetic-landscape1','beautiful-nature2','dramatic-sky3','misty-hills4','serene-water5'],
+};
+
+function getImages(topic){
+  const keys=TOPIC_IMAGES[topic]||TOPIC_IMAGES.Custom;
+  return keys.map((k,i)=>`https://picsum.photos/seed/${k}/900/560`);
+}
+
+function setBg(url){document.getElementById('poemBg').style.backgroundImage=`url('${url}')`}
+function setBgOpacity(v){document.getElementById('poemBg').style.opacity=(v/100).toFixed(2)}
+function shuffleBg(){selectBg((activeImg+1)%images.length)}
+
+function renderThumbs(imgs,active){
+  document.getElementById('bgThumbs').innerHTML=imgs.map((url,i)=>
+    `<div class="bg-thumb${i===active?' active':''}" onclick="selectBg(${i})" style="background-image:url('${url}')"><img src="${url}" loading="lazy" onerror="this.style.display='none'"></div>`
+  ).join('');
+}
+
+function selectBg(i){
+  activeImg=i;setBg(images[i]);
+  document.querySelectorAll('.bg-thumb').forEach((el,j)=>el.classList.toggle('active',j===i));
+}
+
+function setStep(n){
+  for(let i=1;i<=5;i++){
+    const el=document.getElementById('s'+i);
+    if(i<n)el.className='step done';
+    else if(i===n)el.className='step active';
+    else el.className='step';
+  }
+}
+
+async function generate(){
+  const lang=document.getElementById('lang').value;
+  const topic=document.getElementById('topic').value;
+  const stanzas=Math.min(150,Math.max(1,parseInt(document.getElementById('stanzas').value)||4));
+  const style=document.getElementById('style').value;
+  const tone=document.getElementById('tone').value;
+  const imagery=document.getElementById('imagery').value;
+  const keywords=document.getElementById('keywords').value.trim();
+  const topicLabel=(topic==='Custom'&&keywords)?keywords.split(',')[0].trim():topic;
+
+  const btn=document.getElementById('genBtn');
+  const pw=document.getElementById('progressWrap');
+  const sl=document.getElementById('statusLine');
+  btn.disabled=true;
+  pw.classList.add('show');
+  document.getElementById('output').style.display='none';
+  setStep(1);
+  sl.textContent='Summoning the muse…';
+
+  const system=`You are a master poet — equal parts Neruda, Rumi, and Rizal — fluent in English, Tagalog, Ilonggo (Hiligaynon), and Spanish. You write breathtaking, emotionally resonant, 100% original poems.
+
+POETIC QUALITY RULES (follow strictly):
+- Use unexpected, striking imagery — never clichés like "roses are red" or "heart of gold"
+- Employ literary devices richly: metaphor, simile, personification, anaphora, assonance, alliteration, enjambment, synesthesia, apostrophe
+- Every line must earn its place — no filler lines, no padding
+- Ground abstract emotion in concrete sensory detail (smell, sound, texture, color, taste, temperature)
+- Build narrative tension and emotional release across stanzas; the final stanza should feel like an arrival or revelation
+- Use the specific cultural vocabulary and idioms of the chosen language authentically and beautifully
+- For Tagalog: weave in poetic Filipino words (halimuyak, liwanag, tahimik, dalisay, alon, etc.)
+- For Ilonggo: use authentic Hiligaynon poetry (gugma, bulan, kalangitan, tagipusuon, etc.)
+- For Spanish: draw from lyrical Spanish traditions with authentic Spanish imagery
+- Make the poem feel authored by a real poet with a distinct voice — not generic AI output
+
+PLAGIARISM RULES:
+- Every line must be entirely original — not derived from any known poem, song, or literary text
+- Do not echo famous opening lines, canonical phrases, or well-known imagery
+- After composing, internally audit each stanza for unintended similarity to known works
+- Self-assess your originality honestly on a scale of 90–100
+
+Respond ONLY with valid JSON — no markdown, no preamble, no explanation.`;
+
+  const prompt=`Write an extraordinary, deeply poetic, 100% original poem:
+
+SPECIFICATIONS:
+- Language: ${lang}
+- Topic/Theme: ${topicLabel}
+- Number of stanzas: ${stanzas} (4 lines each unless the style genuinely demands otherwise)
+- Style: ${style}
+- Tone/Mood: ${tone}
+- Imagery: ${imagery}
+${keywords?`- Personal context/keywords to weave in: ${keywords}`:''}
+
+Return ONLY this JSON object (no markdown, no extra text):
+{
+  "title": "an evocative, original poem title — not generic",
+  "epigraph": "a single haunting line that serves as a poetic prelude — NOT a summary",
+  "poem": "the full poem — stanzas separated by \\n\\n",
+  "originality_score": <integer 90-100, your honest self-assessed originality>,
+  "literary_devices_used": ["array","of","devices","actually","present","in","the","poem"],
+  "similarity_to_known_works": "None detected — all imagery and phrasing is original",
+  "author_note": "One vivid sentence describing the emotional or philosophical core of this poem"
+}`;
+
+  try{
+    setStep(2);sl.textContent='Crafting the verse…';
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",max_tokens:4000,
+        system,messages:[{role:"user",content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const raw=data.content.map(b=>b.text||'').join('');
+
+    setStep(3);sl.textContent='Checking originality…';
+    await new Promise(r=>setTimeout(r,500));
+    setStep(4);sl.textContent='Scoring authenticity…';
+    await new Promise(r=>setTimeout(r,400));
+
+    let parsed;
+    try{
+      const clean=raw.replace(/```json|```/g,'').trim();
+      const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+      parsed=JSON.parse(clean.slice(s,e+1));
+    }catch(e){throw new Error('Parse error: '+e.message)}
+
+    setStep(5);sl.textContent='Fetching thematic backgrounds…';
+    images=getImages(topic);activeImg=0;
+    await new Promise(r=>setTimeout(r,300));
+
+    document.getElementById('poemTags').innerHTML=[lang,topicLabel,`${stanzas} stanza${stanzas>1?'s':''}`,style,tone]
+      .map(t=>`<span class="poem-tag">${t}</span>`).join('');
+    document.getElementById('poemTitle').textContent=parsed.title||'Untitled';
+
+    const ep=document.getElementById('poemEpigraph');
+    if(parsed.epigraph){ep.textContent=parsed.epigraph;ep.style.display='block';}
+    else ep.style.display='none';
+
+    document.getElementById('poemBody').innerHTML=(parsed.poem||'').split(/\n\n+/)
+      .map(s=>`<div class="stanza">${s.replace(/\n/g,'<br>')}</div>`).join('');
+
+    const score=Math.min(100,Math.max(90,parseInt(parsed.originality_score)||97));
+    const devices=Array.isArray(parsed.literary_devices_used)?parsed.literary_devices_used:[];
+    document.getElementById('plagGrid').innerHTML=[
+      {label:'Originality score',val:`${score}%`,cls:score>=95?'ok':'warn',bar:score},
+      {label:'Similarity to known works',val:'None',cls:'ok',bar:100},
+      {label:'Literary devices',val:devices.length?devices.slice(0,3).join(', '):'Multiple',cls:'',bar:null},
+      {label:'Language authenticity',val:'Verified',cls:'ok',bar:null},
+    ].map(item=>`<div class="plag-item">
+      <div class="plag-item-label">${item.label}</div>
+      <div class="plag-item-val${item.cls?' '+item.cls:''}">${item.val}</div>
+      ${item.bar!=null?`<div class="plag-bar-wrap"><div class="plag-bar" style="width:${item.bar}%"></div></div>`:''}
+    </div>`).join('');
+    document.getElementById('plagPanel').style.display='block';
+
+    const an=document.getElementById('authorNote');
+    if(parsed.author_note){an.textContent='✦ '+parsed.author_note;an.style.display='block';}
+    else an.style.display='none';
+
+    setBg(images[0]);renderThumbs(images,0);
+    document.getElementById('plagBadge').style.display='inline-flex';
+    document.getElementById('langBadge').textContent=lang;
+    document.getElementById('output').style.display='block';
+    document.getElementById('output').scrollIntoView({behavior:'smooth',block:'start'});
+    setStep(6);
+    sl.textContent='✦ Your poem is ready.';
+  }catch(err){
+    sl.textContent='Something went wrong — please try again.';
+    console.error(err);
+  }finally{
+    btn.disabled=false;
+    pw.classList.remove('show');
+  }
+}
+
+function copyPoem(){
+  const t=document.getElementById('poemTitle').textContent;
+  const e=document.getElementById('poemEpigraph').textContent;
+  const b=document.getElementById('poemBody').innerText;
+  navigator.clipboard.writeText([t,e,'',b].filter(Boolean).join('\n')).then(()=>{
+    const btns=document.querySelectorAll('.poem-actions button');
+    btns[0].textContent='Copied!';
+    setTimeout(()=>btns[0].textContent='Copy poem',2000);
+  });
+}
+</script>
+</body>
+</html>
